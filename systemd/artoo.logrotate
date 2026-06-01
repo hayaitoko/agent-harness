@@ -1,0 +1,39 @@
+# Logrotate config for artoo's filesystem logs.
+#
+# journald handles artoo's stdout/stderr now (see systemd/artoo.service),
+# so the only logs we still write directly to disk are:
+#   - data/activity/*.jsonl   one file per day, written by activity.py
+#   - data/artoo.log          legacy; pre-2.x setups wrote here via systemd.
+#                             Kept in the rotation so old deployments tidy up.
+#
+# Install:
+#   sudo cp systemd/artoo.logrotate /etc/logrotate.d/artoo
+#   sudo logrotate -d /etc/logrotate.d/artoo   # dry-run; verifies parse
+#
+# Logrotate's daily job (/etc/cron.daily/logrotate or
+# logrotate.timer) will pick it up. Or run by hand:
+#   sudo logrotate -f /etc/logrotate.d/artoo
+
+/home/youruser/artoo/data/artoo.log {
+    weekly
+    rotate 8
+    compress
+    delaycompress
+    missingok
+    notifempty
+    copytruncate
+    su youruser youruser
+}
+
+/home/youruser/artoo/data/activity/*.jsonl {
+    daily
+    rotate 90
+    compress
+    delaycompress
+    missingok
+    notifempty
+    # No copytruncate — activity.py opens fresh per-day files; once the
+    # date rolls over, today's file is no longer written, so it's safe
+    # to compress in place without truncate.
+    su youruser youruser
+}

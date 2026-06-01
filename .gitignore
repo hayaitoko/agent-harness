@@ -1,0 +1,18 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+.env
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.log
+.DS_Store
+data/
+dist/
+build/
+*.egg-info/
+
+# Local-only extensions — must never be pushed.
+artoo/personal/

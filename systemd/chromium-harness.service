@@ -1,0 +1,42 @@
+[Unit]
+Description=Headless Chrome with CDP on :9222 (target for browser-harness)
+After=network-online.target
+Wants=network-online.target
+# Cap restart storms so a perpetually-crashing Chrome doesn't burn CPU.
+StartLimitBurst=5
+StartLimitIntervalSec=300
+
+[Service]
+Type=simple
+# user-data-dir must NOT be Chrome's platform default — Chrome 136+ silently
+# no-ops --remote-debugging-port when it is. %h is the user's home.
+ExecStartPre=/usr/bin/mkdir -p %h/.cache/artoo/chrome-profile
+ExecStart=/usr/bin/google-chrome-stable \
+  --headless=new \
+  --remote-debugging-port=9222 \
+  --remote-debugging-address=127.0.0.1 \
+  --user-data-dir=%h/.cache/artoo/chrome-profile \
+  --no-first-run \
+  --no-default-browser-check \
+  --disable-default-apps \
+  --disable-gpu \
+  --disable-dev-shm-usage \
+  --window-size=1920,1080
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=15
+
+# Hardening — Chromium is a large attack surface even when headless.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=%h/.cache/artoo
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+
+[Install]
+WantedBy=default.target

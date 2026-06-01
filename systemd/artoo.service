@@ -1,0 +1,50 @@
+[Unit]
+Description=Artoo — personal AI agent (Telegram + workers + crons)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/youruser/artoo
+# systemd's default PATH omits user-installed CLIs (~/.local/bin). Some
+# crons + scripts shell out to user-installed tools, so keep the user
+# PATH on the front.
+Environment="PATH=/home/youruser/.local/bin:/usr/local/bin:/usr/bin:/bin"
+ExecStart=/home/youruser/artoo/.venv/bin/python -m artoo.channels.telegram
+Restart=on-failure
+RestartSec=10
+TimeoutStopSec=30
+
+# Log to journald. journalctl handles rotation + compression for free;
+# the prior `append:data/artoo.log` setup grew unbounded and bypassed
+# `journalctl --user -u artoo -f` that the docs recommend.
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=artoo
+
+# Hardening. Cheap and free; no impact on functionality.
+# NoNewPrivileges blocks setuid/setgid escalation in any child subprocess
+# (the boss can shell via `local`; we want the kernel ceiling on it too).
+NoNewPrivileges=true
+# Private /tmp so Telegram-served temp files don't leak between services.
+PrivateTmp=true
+# Read-only access to /usr, /boot, /efi. Artoo only ever writes under
+# its own data dir + the Obsidian vault — both live under $HOME.
+ProtectSystem=strict
+ProtectHome=read-only
+# Allow writes to artoo's own data dirs and the Obsidian vault. Adjust
+# the vault path if OBSIDIAN_VAULT in .env points elsewhere; without an
+# entry here, save_memory will fail with EROFS.
+ReadWritePaths=/home/youruser/artoo/data
+ReadWritePaths=/home/youruser/.cache/artoo
+ReadWritePaths=/mnt/artoo-vault
+# Drop a few capability classes we never need.
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictNamespaces=true
+LockPersonality=true
+
+[Install]
+WantedBy=default.target
